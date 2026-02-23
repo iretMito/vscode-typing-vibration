@@ -1,0 +1,40 @@
+{
+  "name": "vibe-coding-joke",
+  "displayName": "Vibe Coding (Joke)",
+  "description": "タイピングをスマホのバイブレーションで体感",
+  "version": "0.0.1",
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "main": "./out/extension.js",
+  "activationEvents": [],
+  "contributes": {
+    "commands": [
+      {
+        "command": "vibe-coding.start",
+        "title": "Vibe Coding: Start Server"
+      },
+      {
+        "command": "vibe-coding.stop",
+        "title": "Vibe Coding: Stop Server"
+      }
+    ]
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.0",
+    "@types/vscode": "^1.85.0",
+    "@types/ws": "^8.5.10",
+    "typescript": "^5.3.3"
+  },
+  "dependencies": {
+    "ws": "^8.16.0"
+  }
+}

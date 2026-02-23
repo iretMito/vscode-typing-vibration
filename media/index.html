@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>Vibe Coding</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: #0d1117;
+      color: #e6edf3;
+      height: 100dvh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      -webkit-user-select: none;
+      user-select: none;
+    }
+
+    .flash {
+      position: fixed;
+      inset: 0;
+      background: rgba(88, 166, 255, 0.15);
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.05s ease-out;
+    }
+
+    .flash.active {
+      opacity: 1;
+      transition: none;
+    }
+
+    .status {
+      font-size: 0.85rem;
+      margin-bottom: 2rem;
+      padding: 0.4rem 1rem;
+      border-radius: 999px;
+      font-weight: 500;
+    }
+
+    .status.disconnected { background: #da3633; }
+    .status.connecting { background: #d29922; }
+    .status.connected { background: #238636; }
+
+    .start-btn {
+      width: 200px;
+      height: 200px;
+      border-radius: 50%;
+      border: 3px solid #58a6ff;
+      background: rgba(88, 166, 255, 0.1);
+      color: #58a6ff;
+      font-size: 1.3rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.2s;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .start-btn:active {
+      transform: scale(0.95);
+      background: rgba(88, 166, 255, 0.25);
+    }
+
+    .start-btn.active {
+      background: #238636;
+      border-color: #2ea043;
+      color: #fff;
+    }
+
+    .counter {
+      margin-top: 2rem;
+      font-size: 3rem;
+      font-weight: 700;
+      font-variant-numeric: tabular-nums;
+      opacity: 0.6;
+    }
+
+    .vibrate-slider-group {
+      margin-top: 1.5rem;
+      width: 220px;
+    }
+
+    .vibrate-slider-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      margin-bottom: 0.5rem;
+    }
+
+    .vibrate-slider-label {
+      font-size: 0.75rem;
+      color: #8b949e;
+    }
+
+    .vibrate-slider-value {
+      font-size: 0.75rem;
+      color: #58a6ff;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .vibrate-slider {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 100%;
+      height: 6px;
+      border-radius: 3px;
+      background: #30363d;
+      outline: none;
+    }
+
+    .vibrate-slider::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      background: #58a6ff;
+      cursor: pointer;
+    }
+
+    .vibrate-slider-ticks {
+      display: flex;
+      justify-content: space-between;
+      margin-top: 0.3rem;
+      font-size: 0.65rem;
+      color: #484f58;
+    }
+
+    .info {
+      margin-top: 1.5rem;
+      font-size: 0.75rem;
+      opacity: 0.4;
+      text-align: center;
+      line-height: 1.6;
+    }
+
+    /* Hidden iOS checkbox switch for haptic feedback hack */
+    .ios-haptic-switch {
+      position: fixed;
+      top: -100px;
+      left: -100px;
+      opacity: 0;
+      pointer-events: none;
+    }
+  </style>
+</head>
+<body>
+  <div class="flash" id="flash"></div>
+
+  <div class="status disconnected" id="status">Disconnected</div>
+
+  <button class="start-btn" id="startBtn">TAP TO<br>START</button>
+
+  <div class="vibrate-slider-group">
+    <div class="vibrate-slider-header">
+      <span class="vibrate-slider-label">振動の長さ</span>
+      <span class="vibrate-slider-value" id="vibrateValue">80ms</span>
+    </div>
+    <input type="range" class="vibrate-slider" id="vibrateSlider"
+           min="10" max="200" step="10" value="80">
+    <div class="vibrate-slider-ticks">
+      <span>短い</span><span>長い</span>
+    </div>
+  </div>
+
+  <div class="counter" id="counter">0</div>
+
+  <div class="info">
+    VSCodeで文字を入力すると振動します
+  </div>
+
+  <!-- iOS 18 checkbox switch haptic hack -->
+  <input type="checkbox" switch class="ios-haptic-switch" id="iosSwitch">
+
+  <script src="client.js"></script>
+</body>
+</html>
