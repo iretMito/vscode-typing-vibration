@@ -1,7 +1,7 @@
 {
   "name": "vibe-coding-joke",
   "displayName": "Vibe Coding (Joke)",
-  "description": "タイピングをスマホのバイブレーションで体感",
+  "description": "%ext.description%",
   "version": "0.0.1",
   "engines": {
     "vscode": "^1.85.0"
@@ -15,13 +15,43 @@
     "commands": [
       {
         "command": "vibe-coding.start",
-        "title": "Vibe Coding: Start Server"
+        "title": "%command.start%"
       },
       {
         "command": "vibe-coding.stop",
-        "title": "Vibe Coding: Stop Server"
+        "title": "%command.stop%"
       }
-    ]
+    ],
+    "configuration": {
+      "title": "Vibe Coding (Joke)",
+      "properties": {
+        "vibeCoding.editorShake.enabled": {
+          "order": 0,
+          "type": "boolean",
+          "default": true,
+          "description": "%config.editorShake.enabled%"
+        },
+        "vibeCoding.editorShake.intensity": {
+          "order": 1,
+          "type": "number",
+          "default": 3,
+          "minimum": 1,
+          "maximum": 5,
+          "description": "%config.editorShake.intensity%"
+        },
+        "vibeCoding.server.enabled": {
+          "order": 2,
+          "type": "boolean",
+          "default": true,
+          "description": "%config.server.enabled%"
+        },
+        "vibeCoding.gettingStarted": {
+          "order": 99,
+          "type": "null",
+          "markdownDescription": "%config.gettingStarted%"
+        }
+      }
+    }
   },
   "scripts": {
     "vscode:prepublish": "npm run compile",

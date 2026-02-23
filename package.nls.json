@@ -1,0 +1,9 @@
+{
+  "ext.description": "Feel your typing through smartphone vibration",
+  "command.start": "Vibe Coding: Start",
+  "command.stop": "Vibe Coding: Stop",
+  "config.editorShake.enabled": "Enable editor shake (screen vibration) effect",
+  "config.editorShake.intensity": "Shake intensity (1=subtle, 3=normal, 5=intense)",
+  "config.server.enabled": "Start a local server for smartphone vibration",
+  "config.gettingStarted": "**You must run the Start command to activate Vibe Coding.**\nYou can also launch it from the Command Palette (`Ctrl+Shift+P` / `Cmd+Shift+P`).\n\n[▶ Start](command:vibe-coding.start) | [⏹ Stop](command:vibe-coding.stop)"
+}

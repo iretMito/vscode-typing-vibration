@@ -10,6 +10,49 @@ let wss: WebSocketServer | undefined;
 let statusBarItem: vscode.StatusBarItem | undefined;
 let textChangeDisposable: vscode.Disposable | undefined;
 let activePort: number | undefined;
+let isShaking = false;
+
+// Intensity mapping table: [rightOffset, leftOffset, stepDuration]
+const SHAKE_INTENSITY_TABLE: Record<number, [number, number, number]> = {
+  1: [2, -1, 20],
+  2: [3, -1, 25],
+  3: [4, -2, 30],
+  4: [6, -3, 35],
+  5: [8, -4, 40],
+};
+
+let shakeRightDecor: vscode.TextEditorDecorationType;
+let shakeLeftDecor: vscode.TextEditorDecorationType;
+let shakeEnabled = true;
+let shakeIntensity = 3;
+let serverEnabled = true;
+
+function getConfig() {
+  const config = vscode.workspace.getConfiguration("vibeCoding");
+  shakeEnabled = config.get<boolean>("editorShake.enabled", true);
+  shakeIntensity = config.get<number>("editorShake.intensity", 3);
+  if (shakeIntensity < 1) shakeIntensity = 1;
+  if (shakeIntensity > 5) shakeIntensity = 5;
+  serverEnabled = config.get<boolean>("server.enabled", true);
+}
+
+function createShakeDecorations() {
+  if (shakeRightDecor) shakeRightDecor.dispose();
+  if (shakeLeftDecor) shakeLeftDecor.dispose();
+
+  const [rightPx, leftPx] =
+    SHAKE_INTENSITY_TABLE[shakeIntensity] ?? SHAKE_INTENSITY_TABLE[3];
+
+  shakeRightDecor = vscode.window.createTextEditorDecorationType({
+    isWholeLine: true,
+    textDecoration: `none; margin-left: ${rightPx}px`,
+  });
+
+  shakeLeftDecor = vscode.window.createTextEditorDecorationType({
+    isWholeLine: true,
+    textDecoration: `none; margin-left: ${leftPx}px`,
+  });
+}
 
 const MIME_TYPES: Record<string, string> = {
   ".html": "text/html; charset=utf-8",
@@ -39,11 +82,16 @@ function getConnectedCount(): number {
 }
 
 function updateStatusBar() {
-  if (!statusBarItem || activePort === undefined) return;
-  const ip = getLocalIP();
-  const count = getConnectedCount();
-  statusBarItem.text = `$(broadcast) Vibration: ${ip}:${activePort} (${count} connected)`;
-  statusBarItem.tooltip = `Vibe Coding Server\nhttp://${ip}:${activePort}\nClick to stop`;
+  if (!statusBarItem) return;
+  if (activePort !== undefined) {
+    const ip = getLocalIP();
+    const count = getConnectedCount();
+    statusBarItem.text = `$(broadcast) Vibe: ${ip}:${activePort} (${count} connected)`;
+    statusBarItem.tooltip = `Vibe Coding Server\nhttp://${ip}:${activePort}\nClick to stop`;
+  } else {
+    statusBarItem.text = `$(pulse) Vibe Coding: Active`;
+    statusBarItem.tooltip = `Vibe Coding (editor shake only)\nClick to stop`;
+  }
   statusBarItem.command = "vibe-coding.stop";
   statusBarItem.show();
 }
@@ -70,13 +118,8 @@ function tryListen(
   });
 }
 
-async function startServer(context: vscode.ExtensionContext) {
-  if (httpServer) {
-    vscode.window.showInformationMessage(
-      "Vibe Coding server is already running."
-    );
-    return;
-  }
+async function startHttpServer(context: vscode.ExtensionContext) {
+  if (httpServer) return;
 
   const mediaPath = path.join(context.extensionPath, "media");
 
@@ -85,7 +128,9 @@ async function startServer(context: vscode.ExtensionContext) {
     if (req.url === "/" || req.url === "/index.html") {
       filePath = path.join(mediaPath, "index.html");
     } else {
-      const safePath = path.normalize(req.url ?? "").replace(/^(\.\.[/\\])+/, "");
+      const safePath = path
+        .normalize(req.url ?? "")
+        .replace(/^(\.\.[/\\])+/, "");
       filePath = path.join(mediaPath, safePath);
     }
 
@@ -120,29 +165,94 @@ async function startServer(context: vscode.ExtensionContext) {
   try {
     activePort = await tryListen(httpServer, 8765, 10);
   } catch (err) {
-    vscode.window.showErrorMessage(
-      `Failed to start server: ${err}`
-    );
+    vscode.window.showErrorMessage(`Failed to start server: ${err}`);
     httpServer = undefined;
     wss = undefined;
+  }
+}
+
+function stopHttpServer() {
+  if (wss) {
+    wss.clients.forEach((client) => client.close());
+    wss.close();
+    wss = undefined;
+  }
+
+  if (httpServer) {
+    httpServer.close();
+    httpServer = undefined;
+  }
+
+  activePort = undefined;
+}
+
+function shakeEditor() {
+  if (!shakeEnabled || isShaking) return;
+  const editor = vscode.window.activeTextEditor;
+  if (!editor) return;
+
+  isShaking = true;
+  const ranges = editor.visibleRanges.map(
+    (r) => new vscode.Range(r.start, r.end)
+  );
+
+  const [, , stepDuration] =
+    SHAKE_INTENSITY_TABLE[shakeIntensity] ?? SHAKE_INTENSITY_TABLE[3];
+
+  // Step 1: shift right
+  editor.setDecorations(shakeRightDecor, ranges);
+  editor.setDecorations(shakeLeftDecor, []);
+
+  setTimeout(() => {
+    // Step 2: shift left
+    editor.setDecorations(shakeRightDecor, []);
+    editor.setDecorations(shakeLeftDecor, ranges);
+
+    setTimeout(() => {
+      // Step 3: clear
+      editor.setDecorations(shakeRightDecor, []);
+      editor.setDecorations(shakeLeftDecor, []);
+      isShaking = false;
+    }, stepDuration);
+  }, stepDuration);
+}
+
+function broadcastVibration() {
+  if (!wss) return;
+  const msg = JSON.stringify({ type: "vibrate" });
+  wss.clients.forEach((client) => {
+    if (client.readyState === WebSocket.OPEN) {
+      client.send(msg);
+    }
+  });
+}
+
+function onTyping() {
+  shakeEditor();
+  broadcastVibration();
+}
+
+async function start(context: vscode.ExtensionContext) {
+  if (textChangeDisposable) {
+    vscode.window.showInformationMessage("Vibe Coding is already running.");
     return;
   }
 
   // Throttled text change listener (50ms)
-  let lastBroadcast = 0;
+  let lastAction = 0;
   let throttleTimer: ReturnType<typeof setTimeout> | undefined;
 
   textChangeDisposable = vscode.workspace.onDidChangeTextDocument(() => {
     const now = Date.now();
-    const elapsed = now - lastBroadcast;
+    const elapsed = now - lastAction;
 
     if (elapsed >= 50) {
-      broadcast();
-      lastBroadcast = now;
+      onTyping();
+      lastAction = now;
     } else if (!throttleTimer) {
       throttleTimer = setTimeout(() => {
-        broadcast();
-        lastBroadcast = Date.now();
+        onTyping();
+        lastAction = Date.now();
         throttleTimer = undefined;
       }, 50 - elapsed);
     }
@@ -156,40 +266,35 @@ async function startServer(context: vscode.ExtensionContext) {
     100
   );
   context.subscriptions.push(statusBarItem);
+
+  // Server (optional)
+  if (serverEnabled) {
+    await startHttpServer(context);
+  }
+
   updateStatusBar();
 
-  const ip = getLocalIP();
-  vscode.window.showInformationMessage(
-    `Vibe Coding started: http://${ip}:${activePort}`
-  );
+  if (activePort !== undefined) {
+    const ip = getLocalIP();
+    vscode.window.showInformationMessage(
+      `Vibe Coding started: http://${ip}:${activePort}`
+    );
+  } else {
+    vscode.window.showInformationMessage("Vibe Coding started");
+  }
 }
 
-function broadcast() {
-  if (!wss) return;
-  const msg = JSON.stringify({ type: "vibrate" });
-  wss.clients.forEach((client) => {
-    if (client.readyState === WebSocket.OPEN) {
-      client.send(msg);
-    }
-  });
-}
+function stop() {
+  if (!textChangeDisposable && !httpServer) {
+    return;
+  }
 
-function stopServer() {
   if (textChangeDisposable) {
     textChangeDisposable.dispose();
     textChangeDisposable = undefined;
   }
 
-  if (wss) {
-    wss.clients.forEach((client) => client.close());
-    wss.close();
-    wss = undefined;
-  }
-
-  if (httpServer) {
-    httpServer.close();
-    httpServer = undefined;
-  }
+  stopHttpServer();
 
   if (statusBarItem) {
     statusBarItem.hide();
@@ -197,22 +302,52 @@ function stopServer() {
     statusBarItem = undefined;
   }
 
-  activePort = undefined;
-  vscode.window.showInformationMessage("Vibe Coding server stopped.");
+  vscode.window.showInformationMessage("Vibe Coding stopped.");
 }
 
 export function activate(context: vscode.ExtensionContext) {
+  // Initialize settings and decorations
+  getConfig();
+  createShakeDecorations();
+
+  // React to settings changes
   context.subscriptions.push(
-    vscode.commands.registerCommand("vibe-coding.start", () =>
-      startServer(context)
-    )
+    vscode.workspace.onDidChangeConfiguration((e) => {
+      const shakeChanged =
+        e.affectsConfiguration("vibeCoding.editorShake.enabled") ||
+        e.affectsConfiguration("vibeCoding.editorShake.intensity");
+      const serverChanged = e.affectsConfiguration("vibeCoding.server.enabled");
+
+      if (!shakeChanged && !serverChanged) return;
+
+      const wasServerRunning = !!httpServer;
+      getConfig();
+
+      if (shakeChanged) {
+        createShakeDecorations();
+      }
+
+      // Dynamically start/stop server while running
+      if (serverChanged && textChangeDisposable) {
+        if (serverEnabled && !wasServerRunning) {
+          startHttpServer(context).then(updateStatusBar);
+        } else if (!serverEnabled && wasServerRunning) {
+          stopHttpServer();
+          updateStatusBar();
+        }
+      }
+    })
   );
 
   context.subscriptions.push(
-    vscode.commands.registerCommand("vibe-coding.stop", () => stopServer())
+    vscode.commands.registerCommand("vibe-coding.start", () => start(context))
+  );
+
+  context.subscriptions.push(
+    vscode.commands.registerCommand("vibe-coding.stop", () => stop())
   );
 }
 
 export function deactivate() {
-  stopServer();
+  stop();
 }

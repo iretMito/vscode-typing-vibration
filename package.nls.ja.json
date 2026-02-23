@@ -1,0 +1,9 @@
+{
+  "ext.description": "タイピングをスマホのバイブレーションで体感",
+  "command.start": "Vibe Coding: 開始",
+  "command.stop": "Vibe Coding: 停止",
+  "config.editorShake.enabled": "エディタのシェイク（画面揺れ）効果を有効にする",
+  "config.editorShake.intensity": "シェイクの強さ (1=微弱, 3=標準, 5=激烈)",
+  "config.server.enabled": "スマホバイブレーション用のローカルサーバを起動する",
+  "config.gettingStarted": "**Vibe Coding を使うには Start コマンドの実行が必要です。**\nコマンドパレット（`Ctrl+Shift+P` / `Cmd+Shift+P`）からも起動できます。\n\n[▶ 開始](command:vibe-coding.start) | [⏹ 停止](command:vibe-coding.stop)"
+}
