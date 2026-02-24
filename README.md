@@ -101,19 +101,53 @@ VSCodeの設定画面（`Ctrl+,` / `Cmd+,`）で「Vibe Coding」を検索する
 
 VSCodeの言語設定に応じて、設定画面やコマンド名が英語/日本語で自動的に切り替わる。
 
+## インストール
+
+### 前提条件
+
+- [Node.js](https://nodejs.org/) (v18以上)
+- [VSCode](https://code.visualstudio.com/) (v1.85.0以上)
+
+### 手順
+
+```bash
+# 1. リポジトリをクローン
+git clone https://github.com/iretMito/vscode-typing-vibration.git
+
+# 2. ディレクトリに移動
+cd vscode-typing-vibration
+
+# 3. 依存パッケージをインストール
+npm install
+
+# 4. TypeScriptをコンパイル
+npm run compile
+
+# 5. .vsix ファイルを生成（vsceが未インストールなら先にインストール）
+npx @vscode/vsce package
+
+# 6. VSCodeにインストール
+code --install-extension vibe-coding-joke-0.0.1.vsix
+```
+
+インストール後はVSCodeを再起動（またはウィンドウのリロード）すれば使えるようになる。
+
 ## 使い方
 
-1. VSCodeで `vscode-vibe-coding` フォルダを開く
-2. `npm install` で依存パッケージをインストール
-3. F5キーでExtension Development Hostを起動
-4. コマンドパレット（`Ctrl+Shift+P` / `Cmd+Shift+P`）→ **Vibe Coding: Start** を実行
+1. コマンドパレット（`Ctrl+Shift+P` / `Cmd+Shift+P`）→ **Vibe Coding: Start** を実行
    - 設定画面の「Getting Started」セクションにあるリンクからも起動可能
-5. ステータスバーに表示されたURL（例: `http://192.168.1.5:8765`）をスマホブラウザで開く
+2. ステータスバーに表示されたURL（例: `http://192.168.1.5:8765`）をスマホブラウザで開く
    - `vibeCoding.server.enabled` がOFFの場合、サーバは起動せずエディタシェイクのみ動作する
-6. **TAP TO START** ボタンをタップ（ブラウザのオーディオ/バイブレーション許可に必要）
-7. VSCodeで文字を入力 → エディタが揺れ、スマホが振動する
+3. **TAP TO START** ボタンをタップ（ブラウザのオーディオ/バイブレーション許可に必要）
+4. VSCodeで文字を入力 → エディタが揺れ、スマホが振動する
 
 停止するには、コマンドパレットから **Vibe Coding: Stop** を実行するか、ステータスバーのアイテムをクリック。
+
+### 開発モードで試す場合
+
+1. VSCodeでこのフォルダを開く
+2. F5キーでExtension Development Hostを起動
+3. 上記の「使い方」と同じ手順で操作
 
 ## 技術的な補足
 
